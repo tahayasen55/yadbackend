@@ -13,7 +13,15 @@ const PORT = process.env.PORT || 5000;
 connectDB();
 
 // Middleware
-app.use(cors());
+
+// Explicitly set CORS for Chrome extension
+const corsOptions = {
+  origin: 'chrome-extension://jljokbkdniojnikdnhajdgihmgfalhao', // Replace with your actual extension ID
+  methods: ['GET', 'POST', 'PUT', 'DELETE'], // Specify allowed methods
+  allowedHeaders: ['Content-Type', 'Authorization'], // Specify allowed headers
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Use the supplication routes
