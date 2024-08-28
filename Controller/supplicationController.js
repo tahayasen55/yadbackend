@@ -4,8 +4,20 @@ const Supplication = require('../model/supplication');
 
 const router = express.Router();
 
-// Create a new supplication
-router.post('/add', async (req, res) => {
+// Secret key (you can store this securely in environment variables in a real application)
+const SECRET_KEY = '7C5998BF8B73941F5DD9E32E1F75B';
+
+// Middleware to check secret key
+const checkSecretKey = (req, res, next) => {
+  const secretKey = req.headers['x-secret-key'];
+  if (!secretKey || secretKey !== SECRET_KEY) {
+    return res.status(403).json({ message: 'Forbidden: Invalid or missing secret key' });
+  }
+  next();
+};
+
+// Create a new supplication (only with valid secret key)
+router.post('/add', checkSecretKey, async (req, res) => {
   const { text, type, description } = req.body;
 
   if (!text || !type) {
@@ -27,55 +39,8 @@ router.post('/add', async (req, res) => {
   }
 });
 
-// Get all supplications
-router.get('/', async (req, res) => {
-  try {
-    const supplications = await Supplication.find();
-    res.status(200).json(supplications);
-  } catch (error) {
-    console.error('Error fetching supplications:', error);
-    res.status(500).json({ message: 'Error fetching supplications', error });
-  }
-});
-
-// Get a random supplication
-router.get('/random', async (req, res) => {
-  try {
-    const count = await Supplication.countDocuments();
-    if (count === 0) {
-      return res.status(404).json({ message: 'No supplications found' });
-    }
-    const random = Math.floor(Math.random() * count);
-    const randomSupplication = await Supplication.findOne().skip(random);
-    res.status(200).json(randomSupplication);
-  } catch (error) {
-    console.error('Error fetching random supplication:', error);
-    res.status(500).json({ message: 'Error fetching random supplication', error });
-  }
-});
-
-// Get a single supplication by ID
-router.get('/:id', async (req, res) => {
-  const { id } = req.params;
-
-  if (!mongoose.Types.ObjectId.isValid(id)) {
-    return res.status(400).json({ message: 'Invalid supplication ID format' });
-  }
-
-  try {
-    const supplication = await Supplication.findById(id);
-    if (!supplication) {
-      return res.status(404).json({ message: 'Supplication not found' });
-    }
-    res.status(200).json(supplication);
-  } catch (error) {
-    console.error('Error fetching supplication:', error);
-    res.status(500).json({ message: 'Error fetching supplication', error });
-  }
-});
-
-// Update a supplication by ID
-router.put('/:id', async (req, res) => {
+// Update a supplication by ID (only with valid secret key)
+router.put('/:id', checkSecretKey, async (req, res) => {
   const { text, type, description } = req.body;
 
   if (!text || !type) {
@@ -100,8 +65,8 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// Delete a supplication by ID
-router.delete('/:id', async (req, res) => {
+// Delete a supplication by ID (only with valid secret key)
+router.delete('/:id', checkSecretKey, async (req, res) => {
   try {
     const deletedSupplication = await Supplication.findByIdAndDelete(req.params.id);
     if (!deletedSupplication) {
@@ -111,6 +76,51 @@ router.delete('/:id', async (req, res) => {
   } catch (error) {
     console.error('Error deleting supplication:', error);
     res.status(500).json({ message: 'Error deleting supplication', error });
+  }
+});
+
+// Other routes (e.g., GET) do not require the secret key
+router.get('/', async (req, res) => {
+  try {
+    const supplications = await Supplication.find();
+    res.status(200).json(supplications);
+  } catch (error) {
+    console.error('Error fetching supplications:', error);
+    res.status(500).json({ message: 'Error fetching supplications', error });
+  }
+});
+
+router.get('/random', async (req, res) => {
+  try {
+    const count = await Supplication.countDocuments();
+    if (count === 0) {
+      return res.status(404).json({ message: 'No supplications found' });
+    }
+    const random = Math.floor(Math.random() * count);
+    const randomSupplication = await Supplication.findOne().skip(random);
+    res.status(200).json(randomSupplication);
+  } catch (error) {
+    console.error('Error fetching random supplication:', error);
+    res.status(500).json({ message: 'Error fetching random supplication', error });
+  }
+});
+
+router.get('/:id', async (req, res) => {
+  const { id } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ message: 'Invalid supplication ID format' });
+  }
+
+  try {
+    const supplication = await Supplication.findById(id);
+    if (!supplication) {
+      return res.status(404).json({ message: 'Supplication not found' });
+    }
+    res.status(200).json(supplication);
+  } catch (error) {
+    console.error('Error fetching supplication:', error);
+    res.status(500).json({ message: 'Error fetching supplication', error });
   }
 });
 
